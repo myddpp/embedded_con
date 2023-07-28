@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdlib.h>
+#include "./include/util.h"
 
 
 ///////////////////////////////////////////////
@@ -19,23 +20,18 @@ typedef enum {
 
 // 서빙 로봇의 이벤트 정의
 typedef enum {
-    EVENT_START,     // 주행 시작
-    EVENT_STOP,      // 주행 정지
-    EVENT_OBSTACLE   // 장애물 감지
+    EVENT_START,        // 주행 시작
+    EVENT_STOP,         // 주행 정지
+    EVENT_OBSTACLE,     // 장애물 감지
+    EVENT_IMU,          // 저전압 감지
+    EVENT_LOWBAT,       // 저전압 감지
+    EVENT_IMU_ERR,      // 저전압 감지
 } RobotEvent;
 
 pthread_mutex_t mutex;
 
 
-// 밀리초 단위로 딜레이를 수행하는 함수
-void delay(int milliseconds) {
-    clock_t start_time = clock(); // 현재 CPU 시간 측정
-    clock_t delay_time = milliseconds * CLOCKS_PER_SEC / 1000;
 
-    while (clock() < start_time + delay_time) {
-        // 딜레이를 위해 빈 루프를 실행
-    }
-}
 
 ///////////////////////////////////////////////
 //   Global Variable
@@ -69,80 +65,6 @@ RobotState stateMachine(RobotState currentState, RobotEvent event) {
 }
 
 
-
-
-// 스케쥴러를 이용하여 Fail Safe Function 주기적으로 실행
-void btnHandler(RobotState* currentState) {
-    // 주기적으로 상태를 체크하여 Fail Safe Function을 실행하는 로직을 구현
-    while (true) {
-        // 1초마다 상태를 확인하고, 상태에 따라 필요한 동작을 수행
-        // (실제로는 하드웨어 타이머 인터럽트 또는 스레드를 사용해야 함)
-        delay(1000); // 1초 대기
-
-        // 예시로 장애물을 랜덤하게 감지하는 가정
-        if (rand() % 10 == 0) {
-            *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
-        }
-    }
-}
-
-void imuHandler(RobotState* currentState) {
-    // 주기적으로 상태를 체크하여 Fail Safe Function을 실행하는 로직을 구현
-    while (true) {
-        // 1초마다 상태를 확인하고, 상태에 따라 필요한 동작을 수행
-        // (실제로는 하드웨어 타이머 인터럽트 또는 스레드를 사용해야 함)
-        delay(1000); // 1초 대기
-
-        // 예시로 장애물을 랜덤하게 감지하는 가정
-        if (rand() % 10 == 0) {
-            *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
-        }
-    }
-}
-
-void usHandler(RobotState* currentState) {
-    // 주기적으로 상태를 체크하여 Fail Safe Function을 실행하는 로직을 구현
-    while (true) {
-        // 1초마다 상태를 확인하고, 상태에 따라 필요한 동작을 수행
-        // (실제로는 하드웨어 타이머 인터럽트 또는 스레드를 사용해야 함)
-        delay(1000); // 1초 대기
-
-        // 예시로 장애물을 랜덤하게 감지하는 가정
-        if (rand() % 10 == 0) {
-            *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
-        }
-    }
-}
-
-
-void batMonHandler(RobotState* currentState) {
-    // 주기적으로 상태를 체크하여 Fail Safe Function을 실행하는 로직을 구현
-    while (true) {
-        // 1초마다 상태를 확인하고, 상태에 따라 필요한 동작을 수행
-        // (실제로는 하드웨어 타이머 인터럽트 또는 스레드를 사용해야 함)
-        delay(1000); // 1초 대기
-
-        // 예시로 장애물을 랜덤하게 감지하는 가정
-        if (rand() % 10 == 0) {
-            *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
-        }
-    }
-}
-
-void motorHandler(RobotState* currentState) {
-    // 주기적으로 상태를 체크하여 Fail Safe Function을 실행하는 로직을 구현
-    while (true) {
-        // 1초마다 상태를 확인하고, 상태에 따라 필요한 동작을 수행
-        // (실제로는 하드웨어 타이머 인터럽트 또는 스레드를 사용해야 함)
-        delay(1000); // 1초 대기
-
-        // 예시로 장애물을 랜덤하게 감지하는 가정
-        if (rand() % 10 == 0) {
-            *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
-        }
-    }
-}
-
 int chekDeviceStatus() {
     // 장치 상태를 확인하고, 문제가 있으면 1을 반환
     // Check communication with IMU
@@ -157,17 +79,6 @@ int chekDeviceStatus() {
     // Check communication with Encoder
     // Check communication with Servo
     // Check communication with Motor    
-    return 0;
-}
-
-int sendMsgToAP(char *msg) {
-    // AP로 메시지를 전송하고, 문제가 있으면 1을 반환
-    printf("%s\n", msg);
-    return 0;
-}
-
-int sendMsgToMotor(char *msg) {
-    printf("%s\n", msg);
     return 0;
 }
 

@@ -11,7 +11,7 @@ TARGET = main
 INCLUDES = -I./include
 
 # 소스 파일들
-SRC = main.c util.c handler.c
+SRC = main.c util.c
 
 # 기본 규칙 (all) 설정
 all: $(TARGET)

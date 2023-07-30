@@ -26,10 +26,10 @@ typedef enum {
     EVENT_STOP,         // 주행 정지
     EVENT_EMERGENCY,    // 비상 정지
     EVENT_OBSTACLE,     // 장애물 감지     
-    EVENT_IMU,          
     EVENT_BAT_ERR,       
     EVENT_IMU_ERR,       
-    EVENT_MOTOR_ERR,    
+    EVENT_MOTOR_ERR,
+    EVENT_TICK
 } RobotEvent;
 
 pthread_mutex_t mutex;
@@ -51,14 +51,27 @@ RobotState stateMachine(RobotState currentState, RobotEvent event) {
         case STATE_DRIVING:
             if (event == EVENT_STOP)
                 currentState =  STATE_IDLE;
+            else if (event == EVENT_IMU_ERR)
+                currentState =  STATE_WARN;
             else if (event == EVENT_OBSTACLE)
                 currentState =  STATE_ERROR;
+            else if (event == EVENT_MOTOR_ERR)
+                currentState =  STATE_ERROR;                
+            else if (event == EVENT_BAT_ERR)
+                currentState =  STATE_CRITIAL;
+            else if (event == EVENT_EMERGENCY)
+                currentState =  STATE_CRITIAL;                
             break;
 
-        case STATE_ERROR:
-            // 오류 상태에서는 다른 이벤트를 처리하지 않고 오류를 해결해야 함
-            break;
 
+        case STATE_CRITIAL: // fall through
+            stopMoving();
+        case STATE_ERROR:   // fall through
+            dumpInfo();
+        case STATE_WARN:
+            playBuzzer(1000, 1000);
+            currentState =  STATE_IDLE;
+            break;
         default:
             break;
     }
@@ -71,7 +84,8 @@ RobotState stateMachine(RobotState currentState, RobotEvent event) {
 void btnHandler(void* arg) {
     RobotState* currentState = (RobotState*)arg;
     while (true) {
-        delay(1000); // 1초 대기
+        delay(100); // 100 ms 대기
+        printf(".");
 
         if (rand() % 10 == 0) {
             *currentState = stateMachine(*currentState, EVENT_EMERGENCY);
@@ -84,7 +98,8 @@ void btnHandler(void* arg) {
 void imuHandler(void* arg) {
     RobotState* currentState = (RobotState*)arg;
     while (true) {
-        delay(1000); // 1초 대기
+        delay(100); // 100 ms 대기
+        printf("!");
 
         if (rand() % 10 == 0) {
             // MPU-6050 IMU에서 오류가 발생한 것으로 가정
@@ -97,6 +112,7 @@ void usHandler(void* arg) {
     RobotState* currentState = (RobotState*)arg;
     while (true) {
         delay(100); // 100 ms 대기
+        printf("@");
 
         if (rand() % 10 == 0) {
             *currentState = stateMachine(*currentState, EVENT_OBSTACLE);
@@ -108,7 +124,8 @@ void usHandler(void* arg) {
 void batMonHandler(void* arg) {
     RobotState* currentState = (RobotState*)arg;
     while (true) {
-        delay(100);
+        delay(100); // 100 ms 대기
+        printf("#");
 
         chkBattery();
 
@@ -122,6 +139,7 @@ void motorHandler(void* arg) {
     RobotState* currentState = (RobotState*)arg;
     while (true) {
         delay(100);
+        printf("$");
 
         if (rand() % 10 == 0) {
             *currentState = stateMachine(*currentState, EVENT_MOTOR_ERR);
@@ -129,53 +147,15 @@ void motorHandler(void* arg) {
     }
 }
 
+void workerHandler(void* arg) {
+    RobotState* currentState = (RobotState*)arg;
+    while (true) {
+        delay(100);
+        printf(".");
 
-int chekDeviceStatus() {
-    int ans =0;
-    // 장치 상태를 확인하고, 문제가 있으면 1을 반환
-    // Check communication with IMU
-    // Check communication with US
-    // Check communication with BatMon
-    // Check communication with Button
-    // Check communication with LED
-    // Check communication with Buzzer
-    // Check communication with LCD
-    // Check communication with Camera
-    // Check communication with Speaker
-    // Check communication with Encoder
-    // Check communication with Servo
-    if (rand() % 10 == 0) {
-        ans=1;
-    }    
-    return 0;
+        *currentState = stateMachine(*currentState, EVENT_TICK);
+    }
 }
-
-int chekCommWithOthers() {
-    int ans =0;
-    // 장치 상태를 확인하고, 문제가 있으면 1을 반환
-    // Check communication with AP
-    // Check communication with Motor
-    if (rand() % 10 == 0) {
-        ans=1;
-    }     
-    return 0;
-}
-
-int playBuzzer(int freq, int duration) {
-    printf("Buzzer: %dHz, %dms\n", freq, duration);
-    return 0;
-}
-
-int chkBattery() {
-    // 배터리 상태를 확인하고, 문제가 있으면 1을 반환
-    return 0;
-}
-
-int dumpInfo() {
-    printf("Print All info for Debugging\n");
-    return 0;
-}
-
 
 
 int main() {
@@ -205,6 +185,8 @@ int main() {
     pthread_create(&tUS, NULL, usHandler,  (void*)&currentState);
     pthread_create(&tBatMon, NULL, batMonHandler, (void*)&currentState);
     pthread_create(&tMotor, NULL, motorHandler, (void*)&currentState);
+
+    pthread_create(&tMotor, NULL, workerHandler, (void*)&currentState);
 
     // 각 스레드가 실행을 완료할 때까지 대기
     pthread_join(tBtn, NULL);
